@@ -85,16 +85,21 @@ class _SoundScreenState extends State<SoundScreen> {
     _wavFilePath = '/storage/emulated/0/Download/$wavFileName';
 
     final command =
-        '-i $_aacFilePath -acodec pcm_s16le -ar 44100 -ac 2 $_wavFilePath';
+        '-i $_aacFilePath -acodec pcm_s16le -af "afftdn=nf=-25" -ar 44100 -ac 2 $_wavFilePath';
     print('Executing FFmpeg command: $command');
 
-    await _flutterFFmpeg.execute(command).then((rc) {
+    await _flutterFFmpeg.execute(command).then((rc) async {
       print('FFmpeg process exited with rc: $rc');
       if (rc == 0) {
         print('Conversion successful');
         setState(() {
           _uploadFile(_wavFilePath!);
         });
+        // Delete the original file
+        final originalFile = File(_aacFilePath!);
+        if (await originalFile.exists()) {
+          await originalFile.delete();
+        }
       } else {
         print('Conversion failed');
       }
@@ -196,7 +201,9 @@ class _SoundScreenState extends State<SoundScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _predicted.toString() != 'null' ? 'Result: ' + _predicted.toString() : 'Result: no detected',
+                    _predicted.toString() != 'null'
+                        ? 'Result: ' + _predicted.toString()
+                        : 'Result: no detected',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 20,
@@ -211,13 +218,16 @@ class _SoundScreenState extends State<SoundScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(height: 30),
-                isEarAIWorking ? Image.asset('assets/audio_wave.gif') : 
-                IconButton(
-                  icon: Icon(_isRecording ? Icons.stop_circle : Icons.mic),
-                  iconSize: 32.0,
-                  onPressed: _isRecording ? _stopRecording : _startRecording,
-                  color: _isRecording ? Colors.red : Colors.blue,
-                ),
+                isEarAIWorking
+                    ? Image.asset('assets/audio_wave.gif')
+                    : IconButton(
+                        icon:
+                            Icon(_isRecording ? Icons.stop_circle : Icons.mic),
+                        iconSize: 32.0,
+                        onPressed:
+                            _isRecording ? _stopRecording : _startRecording,
+                        color: _isRecording ? Colors.red : Colors.blue,
+                      ),
                 SizedBox(height: 20),
                 Text(
                   _isRecording
